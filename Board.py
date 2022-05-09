@@ -10,6 +10,8 @@ class Tile:
 
         self.piece = None
 
+        self.glow = False
+
     def print(self) -> str:
         print('-------TILE---------')
         print('X: ', self.x)
@@ -45,13 +47,17 @@ class Board:
         for x in range(BOARD_COLS):
             for y in range(BOARD_ROWS):
                 if(self.selected == self.tiles[x][y]):
-                    color = 'lightGreen'
+                    color = HIGHLIGHTED_TILE_COLOR
                 else:
                     if((x + y) % 2 == 0):
                         color = LIGHT_TILE_COLOR
                     else:
                         color = DARK_TILE_COLOR
-                self.tileSprites.append(Rect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, fill=color))
+                if(self.tiles[x][y].glow):
+                    borderCol = BORDER_TILE_COLOR
+                else:
+                    borderCol = None
+                self.tileSprites.append(Rect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, fill=color, border=borderCol, borderWidth=4))
 
                 piece = self.tiles[x][y].piece
                 coords = convertToCoords(x, y)
@@ -108,8 +114,6 @@ class Board:
         # If we click on a tile which has a piece of our color, select it
         if(self.hasPieceOnTile(mouseTile) and mouseTile.piece.side == self.turn):
             self.selected = mouseTile
-
-        print(self.selected)
 
     def nextTurn(self):
         if(self.turn == Side.WHITE):

@@ -119,4 +119,69 @@ class Bishop(Piece):
 
         return moves
 
+class Queen(Piece):
+    def __init__(self, x, y, side, board):
+        super().__init__(x, y, side, Type.QUEEN, board)
+
+    def getPseudoLegalMoves(self):
+        moves = []
+        ### move[0] = startSquare ### move[1] == targetSquare ###
+
+        for i in range(stepsToEdge(self.x, self.y, -1, 0)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, 0, -1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y - (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, 1, 0)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, 0, 1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y + (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, -1, -1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y - (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, 1, -1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y - (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, 1, 1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y + (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        for i in range(stepsToEdge(self.x, self.y, -1, 1)):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y + (i + 1)])
+            if(self.b.pseudoLegalMove(move)):
+                moves.append(move)
+            else:
+                break
+
+        return moves
 

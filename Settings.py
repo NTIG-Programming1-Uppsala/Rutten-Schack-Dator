@@ -13,6 +13,9 @@ TILE_HEIGHT = 400/BOARD_ROWS
 DARK_TILE_COLOR = rgb(181, 136, 99)
 LIGHT_TILE_COLOR = rgb(240, 217, 181)
 
+HIGHLIGHTED_TILE_COLOR = 'lightGreen'
+BORDER_TILE_COLOR = 'white'
+
 dir_path = os.path.dirname(os.path.realpath(__file__))
 
 w_queen = dir_path + '/Images/W_QUEEN.png'
