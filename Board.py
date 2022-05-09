@@ -18,6 +18,15 @@ class Tile:
         print('Y: ', self.y)
         print('-------TILE---------')
 
+    def copy(self):
+        piece = None
+        if(self.piece):
+            piece = self.piece.copy()
+        copy = Tile(self.x, self.y)
+        copy.piece = piece
+        copy.glow = self.glow
+        return copy
+
 class Board:
     def __init__(self, playerSide):
         self.tiles = [[None for _ in range(BOARD_COLS)] for _ in range(BOARD_ROWS)]
@@ -28,6 +37,8 @@ class Board:
 
         self.pieceSprites = []
         self.tileSprites = []
+
+        self.previousMoves = []
 
         self.selected = None
         self.turn = Side.WHITE
@@ -84,7 +95,6 @@ class Board:
 
     def selectTile(self, mx, my):
 
-        # If AI IS ACTIVE:
         if(self.playerSide != self.turn):
             return
 
@@ -122,10 +132,10 @@ class Board:
             self.turn = Side.WHITE
 
         # If no AI:
-        if(self.playerSide == Side.WHITE):
-            self.playerSide = Side.BLACK
-        else:
-            self.playerSide = Side.WHITE
+        # if(self.playerSide == Side.WHITE):
+        #     self.playerSide = Side.BLACK
+        # else:
+        #     self.playerSide = Side.WHITE
         
     def hasPieceOnTile(self, tile):
         if(tile.piece):
@@ -150,6 +160,13 @@ class Board:
         startTile = move[0]
         targetTile = move[1]
 
+        previousState = {
+            "startTile": (startTile, startTile.copy()),
+            "targetTile": (targetTile, targetTile.copy())
+            }
+
+        self.previousMoves.append(previousState)
+
         movingPiece = startTile.piece
         targetPiece = targetTile.piece
         
@@ -166,6 +183,20 @@ class Board:
         ### CHECH FOR STALEMATE ###
 
         self.nextTurn()
+
+    def unMakePrevMove(self):
+        prevState = self.previousMoves.pop()
+
+        x = prevState["startTile"][0].x
+        y = prevState["startTile"][0].y
+        self.tiles[x][y] = prevState["startTile"][1]
+
+        x = prevState["targetTile"][0].x
+        y = prevState["targetTile"][0].y
+        self.tiles[x][y] = prevState["targetTile"][1]
+
+        self.nextTurn()
+
 
 
         

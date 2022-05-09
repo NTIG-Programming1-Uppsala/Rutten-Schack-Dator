@@ -4,10 +4,10 @@ from Piece import *
 
 b = Board(Side.WHITE)
 
-Rook(4, 2, Side.WHITE, b)
-Bishop(3, 6, Side.BLACK, b)
-Queen(2, 7, Side.BLACK, b)
-Queen(7, 3, Side.WHITE, b)
+b.tiles[4][2].piece = Rook(4, 2, Side.WHITE, b)
+b.tiles[3][6].piece = Bishop(3, 6, Side.BLACK, b)
+b.tiles[2][7].piece = Queen(2, 7, Side.BLACK, b)
+b.tiles[7][3].piece = Queen(7, 3, Side.WHITE, b)
 
 b.drawBoard()
 
@@ -27,5 +27,9 @@ def onMouseMove(mx, my):
 
     b.drawBoard()
 
+def onKeyPress(key):
+    if(key == 'r'):
+        b.unMakePrevMove()
+        b.drawBoard()
 
 cmu_graphics.run()

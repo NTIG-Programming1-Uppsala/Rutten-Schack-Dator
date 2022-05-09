@@ -23,14 +23,16 @@ class Piece:
         self.x = x
         self.y = y
 
-        self.b.tiles[x][y].piece = self
-
         self.side = side
         self.type = type
 
     def move(self, tile):
         self.x = tile.x
         self.y = tile.y
+
+    def copy(self):
+        copy = type(self)(self.x, self.y, self.side, self.b)
+        return copy
 
     def print(self):
         print()
