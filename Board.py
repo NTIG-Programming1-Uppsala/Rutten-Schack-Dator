@@ -1,3 +1,5 @@
+from tkinter.messagebox import NO
+from tracemalloc import start
 from Settings import *
 from cmu_graphics import *
 from Piece import Side
@@ -10,12 +12,19 @@ class Tile:
 
         self.piece = None
 
-        self.glow = False
+        self.glowColor = None
+
+        self.checkedBy = []
+
+    def setGlowColor(self, color):
+        self.glowColor = color
 
     def print(self) -> str:
         print('-------TILE---------')
         print('X: ', self.x)
         print('Y: ', self.y)
+        print('Piece On Tile: ', self.piece)
+        print('Checked by: ', self.checkedBy)
         print('-------TILE---------')
 
     def copy(self):
@@ -24,7 +33,8 @@ class Tile:
             piece = self.piece.copy()
         copy = Tile(self.x, self.y)
         copy.piece = piece
-        copy.glow = self.glow
+        copy.checkedBy = self.checkedBy
+        copy.glowColor = self.glowColor
         return copy
 
 class Board:
@@ -59,16 +69,23 @@ class Board:
             for y in range(BOARD_ROWS):
                 if(self.selected == self.tiles[x][y]):
                     color = HIGHLIGHTED_TILE_COLOR
+                # For debugging
+                # elif(len(self.tiles[x][y].checkedBy) != 0):
+                #     if((x + y) % 2 == 0):
+                #         color = LIGHT_ALLOWEDMOVE_TILE_COLOR
+                #     else:
+                #         color = DARK_ALLOWEDMOVE_TILE_COLOR
+                elif(self.selected and self.selected.piece in self.tiles[x][y].checkedBy):
+                    if((x + y) % 2 == 0):
+                        color = LIGHT_ALLOWEDMOVE_TILE_COLOR
+                    else:
+                        color = DARK_ALLOWEDMOVE_TILE_COLOR
                 else:
                     if((x + y) % 2 == 0):
                         color = LIGHT_TILE_COLOR
                     else:
                         color = DARK_TILE_COLOR
-                if(self.tiles[x][y].glow):
-                    borderCol = BORDER_TILE_COLOR
-                else:
-                    borderCol = None
-                self.tileSprites.append(Rect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, fill=color, border=borderCol, borderWidth=4))
+                self.tileSprites.append(Rect(x * TILE_WIDTH, y * TILE_HEIGHT, TILE_WIDTH, TILE_HEIGHT, fill=color))
 
                 piece = self.tiles[x][y].piece
                 coords = convertToCoords(x, y)
@@ -132,10 +149,10 @@ class Board:
             self.turn = Side.WHITE
 
         # If no AI:
-        # if(self.playerSide == Side.WHITE):
-        #     self.playerSide = Side.BLACK
-        # else:
-        #     self.playerSide = Side.WHITE
+        if(self.playerSide == Side.WHITE):
+            self.playerSide = Side.BLACK
+        else:
+            self.playerSide = Side.WHITE
         
     def hasPieceOnTile(self, tile):
         if(tile.piece):
@@ -154,6 +171,18 @@ class Board:
         if(not self.hasPieceOnTile(targetTile) or self.enemyIsOnTile(targetTile, startTile.piece.side)):
             return True
         return False
+
+    def calculateCheckedTiles(self):
+        for x in range(BOARD_COLS):
+            for y in range(BOARD_ROWS):
+                self.tiles[x][y].checkedBy = []
+
+        for x in range(BOARD_COLS):
+            for y in range(BOARD_ROWS):     
+                piece = self.tiles[x][y].piece
+                if(piece):
+                    for move in piece.getPseudoLegalMoves():
+                        move[1].checkedBy.append(piece)
 
     def makeMove(self, move):
 
@@ -182,20 +211,25 @@ class Board:
         ### CHECK FOR CHECKMATE ###
         ### CHECH FOR STALEMATE ###
 
+        self.calculateCheckedTiles()
+
         self.nextTurn()
 
     def unMakePrevMove(self):
-        prevState = self.previousMoves.pop()
+        if(len(self.previousMoves) != 0):
+            prevState = self.previousMoves.pop()
 
-        x = prevState["startTile"][0].x
-        y = prevState["startTile"][0].y
-        self.tiles[x][y] = prevState["startTile"][1]
+            startTileX = prevState["startTile"][0].x
+            startTileY = prevState["startTile"][0].y
+            self.tiles[startTileX][startTileY] = prevState["startTile"][1]
 
-        x = prevState["targetTile"][0].x
-        y = prevState["targetTile"][0].y
-        self.tiles[x][y] = prevState["targetTile"][1]
+            targetTileX = prevState["targetTile"][0].x
+            targetTileY = prevState["targetTile"][0].y
+            self.tiles[targetTileX][targetTileY] = prevState["targetTile"][1]
 
-        self.nextTurn()
+            self.calculateCheckedTiles()
+
+            self.nextTurn()
 
 
 
