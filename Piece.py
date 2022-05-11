@@ -26,12 +26,15 @@ class Piece:
         self.side = side
         self.type = type
 
+        self.firstMove = True
+
     def move(self, tile):
         self.x = tile.x
         self.y = tile.y
 
     def copy(self):
         copy = type(self)(self.x, self.y, self.side, self.b)
+        copy.firstMove = self.firstMove
         return copy
 
     def print(self):
@@ -50,6 +53,75 @@ class Piece:
 
         return moves
 
+class Pawn(Piece):
+    def __init__(self, x, y, side, board):
+        super().__init__(x, y, side, Type.PAWN, board)
+
+    def getPseudoLegalMoves(self):
+        moves = []
+        ### move[0] = startSquare ### move[1] == targetSquare ###
+
+        if(self.side == Side.WHITE): 
+            dir = -1
+        if(self.side == Side.BLACK):
+            dir = 1
+        
+        steps = 1
+        if(self.firstMove):
+            steps *= 2
+        
+        for i in range(steps):
+            if(self.b.coordsAreInBounds((self.x, self.y + dir * (i + 1)))):
+                move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y + dir * (i + 1)])
+                if(not move[1].piece):
+                    moves.append(move)
+                else:
+                    break
+        
+        moves += self.getPseudoLegalMovesDiag()
+
+        return moves
+
+    def getPseudoLegalMovesDiag(self):
+        moves = []
+        if(self.side == Side.WHITE): 
+            dir = -1
+        if(self.side == Side.BLACK):
+            dir = 1
+
+        if(self.b.coordsAreInBounds((self.x - 1, self.y + dir))):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - 1][self.y + dir])
+            moves.append(move)
+
+        if(self.b.coordsAreInBounds((self.x + 1, self.y + dir))):
+            move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + 1][self.y + dir])
+            moves.append(move)
+
+        return moves
+
+class Knight(Piece):
+    def __init__(self, x, y, side, board):
+        super().__init__(x, y, side, Type.KNIGHT, board)
+
+    def getPseudoLegalMoves(self):
+        moves = []
+        ### move[0] = startSquare ### move[1] == targetSquare ###
+
+        for i in range(2):
+            for j in range(-1, 2, 2):
+                if(i == 0):
+                    k = 2 * j
+                else:
+                    k = -2 * j
+                if(self.b.coordsAreInBounds((self.x + j, self.y + k))):
+                    move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + j][self.y + k])
+                    if(not(move[1].piece and move[1].piece.side == self.side and move[1].piece.type == Type.KING)):
+                        moves.append(move)
+                if(self.b.coordsAreInBounds((self.x + k, self.y + j))):
+                    move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + k][self.y + j])
+                    if(not(move[1].piece and move[1].piece.side == self.side and move[1].piece.type == Type.KING)):
+                        moves.append(move)
+        return moves
 
 class Bishop(Piece):
     def __init__(self, x, y, side, board):
@@ -61,46 +133,54 @@ class Bishop(Piece):
 
         for i in range(stepsToEdge(self.x, self.y, -1, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, -1, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         return moves
@@ -115,46 +195,54 @@ class Rook(Piece):
 
         for i in range(stepsToEdge(self.x, self.y, -1, 0)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 0, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, 0)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                    moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 0, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         return moves
@@ -169,90 +257,106 @@ class Queen(Piece):
 
         for i in range(stepsToEdge(self.x, self.y, -1, 0)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 0, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, 0)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 0, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, -1, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, -1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y - (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, 1, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + (i + 1)][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         for i in range(stepsToEdge(self.x, self.y, -1, 1)):
             move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x - (i + 1)][self.y + (i + 1)])
+            moves.append(move)
             if(self.b.isPseudoLegalMove(move)):
-                moves.append(move)
                 if(move[1].piece and move[1].piece.type == Type.KING and move[1].piece.side != self.side):
                     continue
                 if(move[1].piece and move[1].piece.type != Type.KING):
                     break
             else:
+                if(move[1].piece.type == Type.KING):
+                        moves.remove(move)
                 break
 
         return moves
