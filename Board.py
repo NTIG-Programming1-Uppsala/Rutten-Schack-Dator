@@ -90,6 +90,10 @@ class Board:
         else:
             print('White King Tile: ', self.whiteKingTile)
 
+        print('All Pieces On Board: ')
+        for p in self.pieces:
+            p.print()
+
         print('-------BOARD-------')
 
 
@@ -145,11 +149,9 @@ class Board:
 
     def createPiece(self, x, y, type, side):
         if(type == Type.PAWN):
-            pass
-            #self.tiles[x][y].piece = Pawn(x, y, side, self)
+            self.tiles[x][y].piece = Pawn(x, y, side, self)
         elif(type == Type.KNIGHT):
-            pass
-            #self.tiles[x][y].piece = Knight(x, y, side, self)
+            self.tiles[x][y].piece = Knight(x, y, side, self)
         elif(type == Type.BISHOP):
             self.tiles[x][y].piece = Bishop(x, y, side, self)
         elif(type == Type.ROOK):
@@ -163,7 +165,7 @@ class Board:
             elif(side == Side.WHITE):
                 self.whiteKingTile = self.tiles[x][y]
 
-        self.pieces.append(self.tiles[x][y].piece)
+        self.pieces.append(self.tiles[x][y])
 
     def selectTile(self, mx, my):
 
@@ -182,6 +184,7 @@ class Board:
         if self.selected:
             tryMove = (self.selected, mouseTile)
             if(tryMove in self.selected.piece.getLegalMoves()):
+                print('yes')
                 #and not self.in_check_after_move(self.selected, coords,
                                                  #self.selected.piece.color):
                 self.makeMove((self.selected, mouseTile))
@@ -268,58 +271,46 @@ class Board:
                     return False
             return True
         else:
+            if(targetTile.piece and targetTile.piece.side == movingPiece.side):
+                return False
+            if(movingPiece.type == Type.PAWN):
+                if(not self.hasPieceOnTile(targetTile) and targetTile.x != startTile.x):
+                    return False
             if(movingPiece.side == Side.BLACK):
                 king = self.blackKingTile
             elif(movingPiece.side == Side.WHITE):
                 king = self.whiteKingTile
             if(not king):
                 return True
-
-            allowed = True
-            for piece in self.pieces:
-                if(piece.side != movingPiece.side and (piece.type == Type.BISHOP or piece.type == Type.ROOK or piece.type == Type.QUEEN)):
-                    pieceTile = self.tiles[piece.x][piece.y]
-                    hasLine, lineMoves = self.getMovesInLine(pieceTile, king)
-                    if(hasLine):
-                        protPieces = []
-                        for m in lineMoves:
-                            if(m.piece):
-                                protPieces.append(m.piece)
-                        if(len(protPieces) == 0):
-                            if(len(king.checkedBy) > 1):
-                                if(movingPiece.type == Type.ROOK):
-                                    piece.print()
-                                return False
-                            if(targetTile not in lineMoves and targetTile != pieceTile):
-                                if(movingPiece.type == Type.ROOK):
-                                    print('target:')
-                                    targetTile.print()
-                                    print('pieceTile:')
-                                    pieceTile.print()
-                                return False
-                        if(movingPiece in protPieces):
-                            if(targetTile not in lineMoves):
-                                if(targetTile != pieceTile):
-                                    if(len(protPieces) == 1):
-                                        return False
-            return True
-
-            if(allowed):
-                return True
-            return False
             
-            if(self.inCheck and self.inCheck.side == movingPiece.side):
-                kingTile = self.tiles[self.inCheck.x][self.inCheck.y]
-                for piece in kingTile.checkedBy:
-                    if(targetTile == self.tiles[piece.x][piece.y] and len(kingTile.checkedBy) == 1):
-                        return True
-                    if((piece.type == Type.BISHOP or piece.type == Type.ROOK or piece.type == Type.QUEEN) and targetTile in self.getMovesInLine(self.tiles[piece.x][piece.y], kingTile)[1]):
-                        return True
-                return False 
-
-            if(allowedMove):
-                return True
-            return False
+            for tile in self.pieces:
+                piece = tile.piece
+                if(piece.side != movingPiece.side):
+                    if(piece.type == Type.BISHOP or piece.type == Type.ROOK or piece.type == Type.QUEEN):
+                        pieceTile = self.tiles[piece.x][piece.y]
+                        hasLine, lineMoves = self.getMovesInLine(pieceTile, king)
+                        if(hasLine):
+                            protPieces = []
+                            for m in lineMoves:
+                                if(m.piece):
+                                    protPieces.append(m.piece)
+                            if(len(protPieces) == 0):
+                                if(len(king.checkedBy) > 1):
+                                    return False
+                                if(targetTile not in lineMoves and targetTile != pieceTile):
+                                    return False
+                            if(movingPiece in protPieces):
+                                if(targetTile not in lineMoves):
+                                    if(targetTile != pieceTile):
+                                        if(len(protPieces) == 1):
+                                            return False
+                    else:
+                        pieceTile = self.tiles[piece.x][piece.y]
+                        for m in piece.getPseudoLegalMoves():
+                            if(m[1].piece and m[1].piece.type == Type.KING and m[1].piece.side != piece.side):
+                                if(targetTile != pieceTile):
+                                    return False
+            return True
 
     def isPseudoLegalMove(self, move):
         startTile = move[0]
@@ -336,10 +327,15 @@ class Board:
             for y in range(BOARD_ROWS):
                 self.tiles[x][y].checkedBy = []
 
-        for x in range(BOARD_COLS):
-            for y in range(BOARD_ROWS):     
-                piece = self.tiles[x][y].piece
-                if(piece):
+        for p in self.pieces:     
+            piece = p.piece
+            if(piece):
+                if(piece.type == Type.PAWN):
+                    for move in piece.getPseudoLegalMovesDiag():
+                        move[1].checkedBy.append(piece)
+                        if(move[1].piece and move[1].piece.type == Type.KING):
+                            self.inCheck = move[1].piece
+                else:
                     for move in piece.getPseudoLegalMoves():
                         move[1].checkedBy.append(piece)
                         if(move[1].piece and move[1].piece.type == Type.KING):
@@ -359,10 +355,15 @@ class Board:
         movingPiece = startTile.piece
         
         startTile.piece = None
+        if(startTile in self.pieces):
+            self.pieces.remove(startTile)
+            self.pieces.append(targetTile)
         startTile.selected = False
 
 
         movingPiece.move(targetTile)
+        movingPiece.firstMove = False
+
         if(movingPiece.type == Type.KING):
             if(movingPiece.side == Side.BLACK):
                 self.blackKingTile = targetTile
@@ -370,7 +371,7 @@ class Board:
                 self.whiteKingTile = targetTile
                 
         if(targetTile.piece):
-            self.pieces.remove(targetTile.piece)
+            self.pieces.remove(targetTile)
 
         targetTile.piece = movingPiece
         
@@ -385,24 +386,25 @@ class Board:
 
     def unMakePrevMove(self):
         if(len(self.previousMoves) != 0):
+            self.selected = None
             prevState = self.previousMoves.pop()
 
             startTileX = prevState["startTile"][0].x
             startTileY = prevState["startTile"][0].y
             self.tiles[startTileX][startTileY] = prevState["startTile"][1]
-
-            self.pieces.append(self.tiles[startTileX][startTileY].piece)
-
+            self.pieces.append(self.tiles[startTileX][startTileY])
             if(self.tiles[startTileX][startTileY].piece.type == Type.KING):
                 if(self.tiles[startTileX][startTileY].piece.side == Side.BLACK):
                     self.blackKingTile = self.tiles[startTileX][startTileY]
                 elif(self.tiles[startTileX][startTileY].piece.side == Side.WHITE):
                     self.whiteKingTile = self.tiles[startTileX][startTileY]
-                
 
             targetTileX = prevState["targetTile"][0].x
             targetTileY = prevState["targetTile"][0].y
+            self.pieces.remove(self.tiles[targetTileX][targetTileY])
             self.tiles[targetTileX][targetTileY] = prevState["targetTile"][1]
+            if(self.tiles[targetTileX][targetTileY].piece):
+                self.pieces.append(self.tiles[targetTileX][targetTileY])
 
             self.calculateCheckedTiles()
 
