@@ -1,6 +1,7 @@
 from Settings import *
 from cmu_graphics import *
 from Piece import *
+from math import inf
 
 class Tile:
     def __init__(self, x, y):
@@ -53,6 +54,9 @@ class Board:
         self.inCheck = None
 
         self.pieces = []
+
+        self.blackScore = 0
+        self.whiteScore = 0
 
         self.blackKingTile = None
         self.whiteKingTile = None
@@ -150,24 +154,46 @@ class Board:
     def createPiece(self, x, y, type, side):
         if(type == Type.PAWN):
             self.tiles[x][y].piece = Pawn(x, y, side, self)
+            if(side == Side.WHITE):
+                self.whiteScore += 10
+            elif(side == Side.BLACK):
+                self.blackScore += 10
         elif(type == Type.KNIGHT):
             self.tiles[x][y].piece = Knight(x, y, side, self)
+            if(side == Side.WHITE):
+                self.whiteScore += 30
+            elif(side == Side.BLACK):
+                self.blackScore += 30
         elif(type == Type.BISHOP):
             self.tiles[x][y].piece = Bishop(x, y, side, self)
+            if(side == Side.WHITE):
+                self.whiteScore += 30
+            elif(side == Side.BLACK):
+                self.blackScore += 30
         elif(type == Type.ROOK):
             self.tiles[x][y].piece = Rook(x, y, side, self)
+            if(side == Side.WHITE):
+                self.whiteScore += 50
+            elif(side == Side.BLACK):
+                self.blackScore += 50
         elif(type == Type.QUEEN):
             self.tiles[x][y].piece = Queen(x, y, side, self)
+            if(side == Side.WHITE):
+                self.whiteScore += 90
+            elif(side == Side.BLACK):
+                self.blackScore += 90
         elif(type == Type.KING):
             self.tiles[x][y].piece = King(x, y, side, self)
             if(side == Side.BLACK):
+                self.blackScore += 900
                 self.blackKingTile = self.tiles[x][y]
             elif(side == Side.WHITE):
+                self.whiteScore += 900
                 self.whiteKingTile = self.tiles[x][y]
 
         self.pieces.append(self.tiles[x][y])
 
-    def selectTile(self, mx, my):
+    def selectTile(self, mx, my, cc):
 
         if(self.playerSide != self.turn):
             return
@@ -184,12 +210,16 @@ class Board:
         if self.selected:
             tryMove = (self.selected, mouseTile)
             if(tryMove in self.selected.piece.getLegalMoves()):
-                print('yes')
                 #and not self.in_check_after_move(self.selected, coords,
                                                  #self.selected.piece.color):
                 self.makeMove((self.selected, mouseTile))
                 self.selected = None
-                ## NEXT TURN ###
+                app.num = 0
+                bM = cc.minimax(cc.depth, -inf, inf, True, Side.BLACK)[0]
+                if(bM == None):
+                    Label('CHECKMATE', 200, 200, size=40)
+                else:
+                    self.makeMove((self.tiles[bM[0].x][bM[0].y], self.tiles[bM[1].x][bM[1].y]))
                 return
 
         # If we click outside any legal moves, deselect the current selected tile
@@ -207,10 +237,10 @@ class Board:
             self.turn = Side.WHITE
 
         # If no AI:
-        if(self.playerSide == Side.WHITE):
-            self.playerSide = Side.BLACK
-        else:
-            self.playerSide = Side.WHITE
+        # if(self.playerSide == Side.WHITE):
+        #     self.playerSide = Side.BLACK
+        # else:
+        #     self.playerSide = Side.WHITE
         
     def hasPieceOnTile(self, tile):
         if(tile.piece):
@@ -327,39 +357,50 @@ class Board:
             for y in range(BOARD_ROWS):
                 self.tiles[x][y].checkedBy = []
 
-        for p in self.pieces:     
-            piece = p.piece
-            if(piece):
-                if(piece.type == Type.PAWN):
-                    for move in piece.getPseudoLegalMovesDiag():
-                        move[1].checkedBy.append(piece)
-                        if(move[1].piece and move[1].piece.type == Type.KING):
-                            self.inCheck = move[1].piece
-                else:
-                    for move in piece.getPseudoLegalMoves():
-                        move[1].checkedBy.append(piece)
-                        if(move[1].piece and move[1].piece.type == Type.KING):
-                            self.inCheck = move[1].piece
+        for tile in self.pieces:     
+            piece = tile.piece
+            if(piece.type == Type.PAWN):
+                for move in piece.getPseudoLegalMovesDiag():
+                    move[1].checkedBy.append(piece)
+                    if(move[1].piece and move[1].piece.type == Type.KING):
+                        self.inCheck = move[1].piece
+            else:
+                for move in piece.getPseudoLegalMoves():
+                    move[1].checkedBy.append(piece)
+                    if(move[1].piece and move[1].piece.type == Type.KING):
+                        self.inCheck = move[1].piece
+
+    def getMoves(self, side):
+        moves = []
+        for tile in self.pieces:
+            if(tile.piece.side == side):
+                moves.extend(tile.piece.getLegalMoves())
+
+        return moves
+
 
     def makeMove(self, move):
+        # app.num += 1
+        # print(app.num)
+
         startTile = move[0]
         targetTile = move[1]
 
         previousState = {
             "startTile": (startTile, startTile.copy()),
             "targetTile": (targetTile, targetTile.copy()),
+            "blackScore": self.blackScore,
+            "whiteScore": self.whiteScore
             }
 
         self.previousMoves.append(previousState)
-
         movingPiece = startTile.piece
-        
+
         startTile.piece = None
         if(startTile in self.pieces):
             self.pieces.remove(startTile)
             self.pieces.append(targetTile)
         startTile.selected = False
-
 
         movingPiece.move(targetTile)
         movingPiece.firstMove = False
@@ -406,11 +447,23 @@ class Board:
             if(self.tiles[targetTileX][targetTileY].piece):
                 self.pieces.append(self.tiles[targetTileX][targetTileY])
 
+            self.blackScore = prevState["blackScore"]
+            self.whiteScore = prevState["whiteScore"]
+
             self.calculateCheckedTiles()
 
             self.nextTurn()
         else:
             print('No Previous Moves Availabe')
+
+    def evaluate(self):
+        totEval = 0
+        for tile in self.pieces:
+            if(tile.piece.side == Side.WHITE):
+                totEval -= tile.piece.value
+            else:
+                totEval += tile.piece.value
+        return totEval
 
 
 

@@ -1,6 +1,7 @@
 from cmu_graphics import *
 from Board import *
 from Piece import *
+from Chess_Computer import *
 
 app.stepsPerSecond = 60
 
@@ -36,8 +37,13 @@ b.createPiece(4, 7, Type.KING, Side.WHITE)
 b.drawBoard()
 b.initializeBoard()
 
+cc = ChessComputa(3, Side.BLACK, b)
+
+app.num = 0
+
+
 def onMousePress(mx, my):
-    b.selectTile(mx, my)
+    b.selectTile(mx, my, cc)
     b.drawBoard()
 
 def onMouseMove(mx, my):
@@ -55,7 +61,8 @@ def onKeyPress(key):
     if(key == 'r'):
         b.unMakePrevMove()
         b.drawBoard()
-
+    if(key == 'm'):
+        pass
     if(key == 'space'):
         b.print()
 

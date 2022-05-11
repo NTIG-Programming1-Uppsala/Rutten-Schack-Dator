@@ -56,6 +56,7 @@ class Piece:
 class Pawn(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.PAWN, board)
+        self.value = 10
 
     def getPseudoLegalMoves(self):
         moves = []
@@ -102,6 +103,7 @@ class Pawn(Piece):
 class Knight(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.KNIGHT, board)
+        self.value = 30
 
     def getPseudoLegalMoves(self):
         moves = []
@@ -126,6 +128,7 @@ class Knight(Piece):
 class Bishop(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.BISHOP, board)
+        self.value = 30
 
     def getPseudoLegalMoves(self):
         moves = []
@@ -188,6 +191,7 @@ class Bishop(Piece):
 class Rook(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.ROOK, board)
+        self.value = 50
 
     def getPseudoLegalMoves(self):
         moves = []
@@ -250,6 +254,7 @@ class Rook(Piece):
 class Queen(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.QUEEN, board)
+        self.value = 90
 
     def getPseudoLegalMoves(self):
         moves = []
@@ -364,6 +369,7 @@ class Queen(Piece):
 class King(Piece):
     def __init__(self, x, y, side, board):
         super().__init__(x, y, side, Type.KING, board)
+        self.value = 900
 
     def getPseudoLegalMoves(self):
         moves = []
