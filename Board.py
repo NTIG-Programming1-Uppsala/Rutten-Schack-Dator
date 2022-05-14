@@ -149,7 +149,7 @@ class Board:
                 self.tiles[x][y] = Tile(x, y)
 
     def initializeBoard(self):
-        self.calculateCheckedTiles()
+        self.calculateAllCheckedTiles()
 
     def createPiece(self, x, y, type, side):
         if(type == Type.PAWN):
@@ -214,12 +214,11 @@ class Board:
                                                  #self.selected.piece.color):
                 self.makeMove((self.selected, mouseTile))
                 self.selected = None
-                app.num = 0
-                bM = cc.minimax(cc.depth, -inf, inf, True, Side.BLACK)[0]
-                if(bM == None):
-                    Label('CHECKMATE', 200, 200, size=40)
-                else:
-                    self.makeMove((self.tiles[bM[0].x][bM[0].y], self.tiles[bM[1].x][bM[1].y]))
+                # bM = cc.minimax(cc.depth, -inf, inf, True, Side.BLACK)[0]
+                # if(bM == None):
+                #     Label('CHECKMATE', 200, 200, size=40)
+                # else:
+                #     self.makeMove((self.tiles[bM[0].x][bM[0].y], self.tiles[bM[1].x][bM[1].y]))
                 return
 
         # If we click outside any legal moves, deselect the current selected tile
@@ -295,14 +294,15 @@ class Board:
         targetTile = move[1]
         movingPiece = startTile.piece
             
+        if(targetTile.piece and targetTile.piece.side == movingPiece.side):
+            return False
+
         if(movingPiece.type == Type.KING):
             for piece in targetTile.checkedBy:
                 if(piece.side != movingPiece.side):
                     return False
             return True
         else:
-            if(targetTile.piece and targetTile.piece.side == movingPiece.side):
-                return False
             if(movingPiece.type == Type.PAWN):
                 if(not self.hasPieceOnTile(targetTile) and targetTile.x != startTile.x):
                     return False
@@ -350,7 +350,7 @@ class Board:
             return True
         return False
 
-    def calculateCheckedTiles(self):
+    def calculateAllCheckedTiles(self):
         self.inCheck = None
 
         for x in range(BOARD_COLS):
@@ -369,6 +369,29 @@ class Board:
                     move[1].checkedBy.append(piece)
                     if(move[1].piece and move[1].piece.type == Type.KING):
                         self.inCheck = move[1].piece
+
+    def deleteCheckedTiles(self, movingTile, otherTile):
+        movingPiece = movingTile.piece
+        otherPiece = otherTile.piece
+        pieces1 = movingTile.checkedBy
+        if(otherPiece):
+            pieces2 = otherTile.checkedBy
+        else:
+            pieces2 = []
+        pieces = pieces1 + pieces2
+        pieces.append(movingPiece)
+        if(otherPiece):
+            pieces.append(otherPiece)
+        pieces = list(dict.fromkeys(pieces))
+
+        for p in pieces:
+            if(p.type == Type.BISHOP or p.type == Type.ROOK or p.type == Type.QUEEN):
+                if(p.type == Type.PAWN):
+                    for move in p.getPseudoLegalMovesDiag():
+                        move[1].checkedBy.remove(p)
+                else:
+                    for move in p.getPseudoLegalMoves():
+                        move[1].checkedBy.remove(p)
 
     def getMoves(self, side):
         moves = []
@@ -394,6 +417,8 @@ class Board:
             }
 
         self.previousMoves.append(previousState)
+
+        self.deleteCheckedTiles(startTile, targetTile)
         movingPiece = startTile.piece
 
         startTile.piece = None
@@ -421,7 +446,7 @@ class Board:
         ### CHECK FOR CHECKMATE ###
         ### CHECH FOR STALEMATE ###
 
-        self.calculateCheckedTiles()
+        self.calculateAllCheckedTiles()
 
         self.nextTurn()
 
@@ -450,7 +475,7 @@ class Board:
             self.blackScore = prevState["blackScore"]
             self.whiteScore = prevState["whiteScore"]
 
-            self.calculateCheckedTiles()
+            self.calculateAllCheckedTiles()
 
             self.nextTurn()
         else:
