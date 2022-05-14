@@ -380,19 +380,16 @@ class King(Piece):
                 targetTileStraightCoords = (self.x + dirX, self.y + dirY)
                 if(self.b.coordsAreInBounds(targetTileStraightCoords)):
                     move = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + dirX][self.y + dirY])
-                    if(self.b.isPseudoLegalMove(move)):
-                        moves.append(move)
+                    moves.append(move)
 
                 targetTileDiagCoords1 = (self.x + dirY, self.y)
                 targetTileDiagCoords2 = (self.x, self.y + dirY)
                 if(dirX == -1 and self.b.coordsAreInBounds(targetTileDiagCoords1)):
                     move2 = (self.b.tiles[self.x][self.y], self.b.tiles[self.x + dirY][self.y])
-                    if(self.b.isPseudoLegalMove(move2)):
-                        moves.append(move2)
+                    moves.append(move2)
                 elif(dirX == 1 and self.b.coordsAreInBounds(targetTileDiagCoords2)):
                     move2 = (self.b.tiles[self.x][self.y], self.b.tiles[self.x][self.y + dirY])
-                    if(self.b.isPseudoLegalMove(move2)):
-                        moves.append(move2)
+                    moves.append(move2)
 
         return moves
 

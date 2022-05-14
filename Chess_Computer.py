@@ -12,11 +12,11 @@ class ChessComputa:
  
     def minimax(self, depth, alpha, beta, maxPlayer, maxColor): 
 
-        if(depth == 0):
-            return None, self.b.evaluate()
-
 
         legalMoves = self.b.getMoves(maxColor)
+
+        if(depth == 0):
+            return None, self.b.evaluate()
 
         random.shuffle(legalMoves)
 
