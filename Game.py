@@ -32,7 +32,19 @@ b.createPiece(6, 7, Type.KNIGHT, Side.WHITE)
 b.createPiece(4, 0, Type.KING, Side.BLACK)
 b.createPiece(4, 7, Type.KING, Side.WHITE)
 
+# b.createPiece(4, 0, Type.KING, Side.BLACK)
+# b.createPiece(4, 7, Type.KING, Side.WHITE)
 
+# b.createPiece(2, 1, Type.QUEEN, Side.BLACK)
+# b.createPiece(7, 6, Type.QUEEN, Side.WHITE)
+
+# b.createPiece(2, 6, Type.BISHOP, Side.WHITE)
+# b.createPiece(2, 0, Type.BISHOP, Side.BLACK)
+# b.createPiece(7, 0, Type.ROOK, Side.BLACK)
+# b.createPiece(0, 7, Type.ROOK, Side.WHITE)
+
+# b.createPiece(4, 1, Type.PAWN, Side.BLACK)
+# b.createPiece(4, 6, Type.PAWN, Side.WHITE)
 
 b.drawBoard()
 b.initializeBoard()

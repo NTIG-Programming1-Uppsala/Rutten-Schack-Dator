@@ -1,7 +1,9 @@
+from tabnanny import check
 from Settings import *
 from cmu_graphics import *
 from Piece import *
 from math import inf
+import time
 
 class Tile:
     def __init__(self, x, y):
@@ -123,7 +125,7 @@ class Board:
                 #         color = LIGHT_ALLOWEDMOVE_TILE_COLOR
                 #     else:
                 #         color = DARK_ALLOWEDMOVE_TILE_COLOR
-                elif(self.selected and self.selected.piece and self.tiles[x][y] in [i[1] for i in self.selected.piece.getLegalMoves()]):
+                elif(self.selected and self.selected.piece and (x, y) in [i[1] for i in self.selected.piece.getLegalMoves()]):
                     if((x + y) % 2 == 0):
                         color = LIGHT_ALLOWEDMOVE_TILE_COLOR
                     else:
@@ -208,17 +210,15 @@ class Board:
 
         # Check if piece is selected. If so, make move if legal
         if self.selected:
-            tryMove = (self.selected, mouseTile)
+            tryMove = ((self.selected.x, self.selected.y), (mouseTile.x, mouseTile.y))
             if(tryMove in self.selected.piece.getLegalMoves()):
-                #and not self.in_check_after_move(self.selected, coords,
-                                                 #self.selected.piece.color):
-                self.makeMove((self.selected, mouseTile))
+                self.makeMove(tryMove)
                 self.selected = None
-                # bM = cc.minimax(cc.depth, -inf, inf, True, Side.BLACK)[0]
-                # if(bM == None):
-                #     Label('CHECKMATE', 200, 200, size=40)
-                # else:
-                #     self.makeMove((self.tiles[bM[0].x][bM[0].y], self.tiles[bM[1].x][bM[1].y]))
+                bM = cc.minimax(cc.depth, -inf, inf, True, Side.BLACK)[0]
+                if(bM == None):
+                    print('checkmate')
+                else:
+                    self.makeMove(bM)
                 return
 
         # If we click outside any legal moves, deselect the current selected tile
@@ -262,15 +262,14 @@ class Board:
         dirX = endTile.x - startTile.x
         dirY = endTile.y - startTile.y
 
-        if(abs(dirX) != abs(dirY) and abs(dirX) != 0 and abs(dirY) != 0):
-            return False, []
-
         piece = self.tiles[startTile.x][startTile.y].piece
 
-        if(piece.type == Type.BISHOP and (dirX == 0 or dirY == 0)):
-            return False, []
-        elif(piece.type == Type.ROOK and (dirX != 0 or dirY != 0)):
-            return False, []
+        if(piece.type == Type.BISHOP and (dirX == 0 or dirY == 0 or dirY/dirX != 1 or dirY/dirX != -1)):
+            return False, [], []
+        if(piece.type == Type.ROOK and (dirX != 0 and dirY != 0)):
+            return False, [], []
+        if(piece.type == Type.QUEEN and (dirX == 0 or dirY == 0 or dirY/dirX != 1 or dirY/dirX != -1) and (dirX != 0 and dirY != 0)):
+            return False, [], []
 
         if(dirX == 0):
             steps = abs(dirY)
@@ -283,68 +282,106 @@ class Board:
         dirY = sign(dirY)
 
         moves = []
+        piecesInLine = []
         for i in range(steps - 1):
-            move = self.tiles[startTile.x + dirX * (i + 1)][startTile.y + dirY * (i + 1)]
-            moves.append(move)
+            if(self.coordsAreInBounds((startTile.x + dirX * (i + 1), startTile.y + dirY * (i + 1)))):
+                move = self.tiles[startTile.x + dirX * (i + 1)][startTile.y + dirY * (i + 1)]
+                if(move.piece):
+                    piecesInLine.append(move.piece)
+                moves.append(move)
 
-        return True, moves
+        return True, moves, piecesInLine
 
     def isLegalMove(self, move):
-        startTile = move[0]
-        targetTile = move[1]
+        startTile = self.tiles[move[0][0]][move[0][1]]
+        targetTile = self.tiles[move[1][0]][move[1][1]]
         movingPiece = startTile.piece
-            
+
         if(targetTile.piece and targetTile.piece.side == movingPiece.side):
             return False
 
+        if(movingPiece.side == Side.BLACK):
+            king = self.blackKingTile
+        elif(movingPiece.side == Side.WHITE):
+            king = self.whiteKingTile
+
+        checkingPieces = []
+
+        for p in king.checkedBy:
+            if(p.side != movingPiece.side):
+                checkingPieces.append(p)
+        
+        if(movingPiece.type == Type.PAWN):
+            if(not self.hasPieceOnTile(targetTile) and targetTile.x != startTile.x):
+                return False
+        if(not king):
+            return True
+
+        if(len(checkingPieces) == 0 and movingPiece.type != Type.KING and not movingPiece.pinningPiece):
+            return True
+        
         if(movingPiece.type == Type.KING):
             for piece in targetTile.checkedBy:
                 if(piece.side != movingPiece.side):
                     return False
             return True
         else:
-            if(movingPiece.type == Type.PAWN):
-                if(not self.hasPieceOnTile(targetTile) and targetTile.x != startTile.x):
+
+            if(len(checkingPieces) > 1):
+                return False
+
+            if(movingPiece.pinningPiece):
+                if(movingPiece.type == Type.KNIGHT or movingPiece.type == Type.PAWN):
                     return False
-            if(movingPiece.side == Side.BLACK):
-                king = self.blackKingTile
-            elif(movingPiece.side == Side.WHITE):
-                king = self.whiteKingTile
-            if(not king):
-                return True
-            
-            for tile in self.pieces:
-                piece = tile.piece
-                if(piece.side != movingPiece.side):
-                    if(piece.type == Type.BISHOP or piece.type == Type.ROOK or piece.type == Type.QUEEN):
-                        pieceTile = self.tiles[piece.x][piece.y]
-                        hasLine, lineMoves = self.getMovesInLine(pieceTile, king)
-                        if(hasLine):
-                            protPieces = []
-                            for m in lineMoves:
-                                if(m.piece):
-                                    protPieces.append(m.piece)
-                            if(len(protPieces) == 0):
-                                if(len(king.checkedBy) > 1):
-                                    return False
-                                if(targetTile not in lineMoves and targetTile != pieceTile):
-                                    return False
-                            if(movingPiece in protPieces):
-                                if(targetTile not in lineMoves):
-                                    if(targetTile != pieceTile):
-                                        if(len(protPieces) == 1):
-                                            return False
+
+                dirX = sign(movingPiece.pinningPiece.x - movingPiece.x)
+                dirY = sign(movingPiece.pinningPiece.y - movingPiece.y)
+
+                moveDirX = sign(targetTile.x - startTile.x)
+                moveDirY = sign(targetTile.y - startTile.y)
+
+                if((moveDirX == dirX and moveDirY == dirY) or (moveDirX * -1 == dirX and moveDirY * -1 == dirY)):
+                    if(len(checkingPieces) == 0):
+                        return True
                     else:
-                        pieceTile = self.tiles[piece.x][piece.y]
-                        for m in piece.getPseudoLegalMoves():
-                            if(m[1].piece and m[1].piece.type == Type.KING and m[1].piece.side != piece.side):
-                                if(targetTile != pieceTile):
-                                    return False
-            return True
+                        return False
+                else:
+                    return False
+
+            checkingPiece = checkingPieces[0]
+            if(checkingPiece.type == Type.KNIGHT or checkingPiece.type == Type.PAWN):
+                if(targetTile == self.tiles[checkingPiece.x][checkingPiece.y]):
+                    return True
+                else:
+                    return False
+
+            dirToKingFromCp = (king.x - checkingPiece.x, king.y - checkingPiece.y)
+            dirToKingFromTt = (king.x - targetTile.x, king.y - targetTile.y)
+
+            if(dirToKingFromCp[0] == 0):
+                ratioCp = 0
+            else:
+                ratioCp = dirToKingFromCp[1]/dirToKingFromCp[0]
+            
+            if(dirToKingFromTt[0] == 0):
+                ratioTt = 0
+            else:
+                ratioTt = dirToKingFromTt[1]/dirToKingFromTt[0]
+
+            relX1 = king.x - checkingPiece.x
+            relY1 = king.y - checkingPiece.y
+
+            relX2 = king.x - targetTile.x
+            relY2 = king.y - targetTile.y
+
+            if(ratioCp == ratioTt and abs(relX2) <= abs(relX1) and abs(relY2) <= abs(relY1) and sign(relX1) == sign(relX2) and sign(relY1) == sign(relY2)):
+                return True
+            else:
+                return False
 
     def isPseudoLegalMove(self, move):
-        startTile = move[0]
-        targetTile = move[1]
+        startTile = self.tiles[move[0][0]][move[0][1]]
+        targetTile = self.tiles[move[1][0]][move[1][1]]
 
         if(not self.hasPieceOnTile(targetTile) or self.hasEnemyOnTile(targetTile, startTile.piece.side)):
             return True
@@ -352,46 +389,38 @@ class Board:
 
     def calculateAllCheckedTiles(self):
         self.inCheck = None
-
         for x in range(BOARD_COLS):
             for y in range(BOARD_ROWS):
                 self.tiles[x][y].checkedBy = []
+                if(self.tiles[x][y].piece):
+                    self.tiles[x][y].piece.pinningPiece = None
 
         for tile in self.pieces:     
             piece = tile.piece
             if(piece.type == Type.PAWN):
                 for move in piece.getPseudoLegalMovesDiag():
-                    move[1].checkedBy.append(piece)
-                    if(move[1].piece and move[1].piece.type == Type.KING):
-                        self.inCheck = move[1].piece
+                    self.tiles[move[1][0]][move[1][1]].checkedBy.append(piece)
+                    # if(move[1].piece and move[1].piece.type == Type.KING):
+                    #     self.inCheck = move[1].piece
             else:
+                if(piece.type == Type.BISHOP or piece.type == Type.ROOK or piece.type == Type.QUEEN):
+                    if(piece.side == Side.BLACK):
+                        king = self.whiteKingTile
+                    elif(piece.side == Side.WHITE):
+                        king = self.blackKingTile
+                    hasLine, moves, piecesInLine = self.getMovesInLine(tile, king)
+                    if(hasLine and len(piecesInLine) == 1):
+                        pieceInLine = piecesInLine[0]
+                        pieceInLine.pinningPiece = piece
+
                 for move in piece.getPseudoLegalMoves():
-                    move[1].checkedBy.append(piece)
-                    if(move[1].piece and move[1].piece.type == Type.KING):
-                        self.inCheck = move[1].piece
+                    self.tiles[move[1][0]][move[1][1]].checkedBy.append(piece)
+                    # if(move[1].piece and move[1].piece.type == Type.KING):
+                    #     self.inCheck = move[1].piece
 
-    def deleteCheckedTiles(self, movingTile, otherTile):
-        movingPiece = movingTile.piece
-        otherPiece = otherTile.piece
-        pieces1 = movingTile.checkedBy
-        if(otherPiece):
-            pieces2 = otherTile.checkedBy
-        else:
-            pieces2 = []
-        pieces = pieces1 + pieces2
-        pieces.append(movingPiece)
-        if(otherPiece):
-            pieces.append(otherPiece)
-        pieces = list(dict.fromkeys(pieces))
 
-        for p in pieces:
-            if(p.type == Type.BISHOP or p.type == Type.ROOK or p.type == Type.QUEEN):
-                if(p.type == Type.PAWN):
-                    for move in p.getPseudoLegalMovesDiag():
-                        move[1].checkedBy.remove(p)
-                else:
-                    for move in p.getPseudoLegalMoves():
-                        move[1].checkedBy.remove(p)
+    def calculateCheckedTilesNew(self):
+        pass
 
     def getMoves(self, side):
         moves = []
@@ -399,15 +428,14 @@ class Board:
             if(tile.piece.side == side):
                 moves.extend(tile.piece.getLegalMoves())
 
-        return moves
-
+        return list(set(moves))
 
     def makeMove(self, move):
         # app.num += 1
         # print(app.num)
 
-        startTile = move[0]
-        targetTile = move[1]
+        startTile = self.tiles[move[0][0]][move[0][1]]
+        targetTile = self.tiles[move[1][0]][move[1][1]]
 
         previousState = {
             "startTile": (startTile, startTile.copy()),
@@ -418,7 +446,6 @@ class Board:
 
         self.previousMoves.append(previousState)
 
-        self.deleteCheckedTiles(startTile, targetTile)
         movingPiece = startTile.piece
 
         startTile.piece = None
@@ -445,9 +472,8 @@ class Board:
 
         ### CHECK FOR CHECKMATE ###
         ### CHECH FOR STALEMATE ###
-
         self.calculateAllCheckedTiles()
-
+        # print(e - s)
         self.nextTurn()
 
     def unMakePrevMove(self):

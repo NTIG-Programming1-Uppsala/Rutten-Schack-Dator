@@ -1,6 +1,7 @@
 import random
 from math import inf
 from Piece import Side
+import time
 
 class ChessComputa:
     def __init__(self, depth, side, b):
@@ -12,7 +13,6 @@ class ChessComputa:
  
     def minimax(self, depth, alpha, beta, maxPlayer, maxColor): 
 
-
         legalMoves = self.b.getMoves(maxColor)
 
         if(depth == 0):
@@ -21,7 +21,7 @@ class ChessComputa:
         random.shuffle(legalMoves)
 
         if(len(legalMoves) == 0):
-            return None, self.b.evaluate
+            return None, self.b.evaluate()
 
         bestMove = random.choice(legalMoves)
 
@@ -29,7 +29,7 @@ class ChessComputa:
             # If max
             maxEval = -inf
             for move in legalMoves:
-                self.b.makeMove((self.b.tiles[move[0].x][move[0].y], self.b.tiles[move[1].x][move[1].y]))
+                self.b.makeMove(move)
                 currentEval = self.minimax(depth - 1, alpha, beta, False, Side.WHITE)[1]
                 self.b.unMakePrevMove()
                 if(currentEval > maxEval):
@@ -43,7 +43,7 @@ class ChessComputa:
             # If min
             minEval = inf
             for move in legalMoves:
-                self.b.makeMove((self.b.tiles[move[0].x][move[0].y], self.b.tiles[move[1].x][move[1].y]))
+                self.b.makeMove(move)
                 currentEval = self.minimax(depth - 1, alpha, beta, True, Side.BLACK)[1]
                 self.b.unMakePrevMove()
                 if(currentEval < minEval):
